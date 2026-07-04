@@ -4,28 +4,52 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"sync"
 	"time"
 )
 
-func scanport(target string, port int) {
+// 👷 Worker function that pulls ports off the channel conveyor belt
+func worker(target string, ports chan int, wg *sync.WaitGroup) {
+	for port := range ports {
+		p := strconv.Itoa(port)
+		address := net.JoinHostPort(target, p)
 
-	p := strconv.Itoa(port)
-	adress := net.JoinHostPort(target, p)
+		conn, err := net.DialTimeout("tcp", address, 2*time.Second)
+		if err != nil {
+			// Port is closed or timed out, move to the next one
+			continue
+		}
 
-	fmt.Println(adress)
-
-	conn, err := net.DialTimeout("tcp", adress, 2*time.Second)
-	if err != nil {
-		fmt.Print("port error", p)
-	} else {
-		fmt.Println("port open", conn)
+		// Port is open, clean up the connection and print success
+		conn.Close()
+		fmt.Printf("Port %s is OPEN! 🎉\n", p)
 	}
+	// Signal that this specific worker is fully finished
+	wg.Done()
 }
 
 func main() {
 	target := "scanme.nmap.org"
+	var wg sync.WaitGroup
 
-	for port := 1; port <= 1024; port++ {
-		go scanport(target, port)
+	// 📦 1. Create the shared conveyor belt channel
+	ports := make(chan int, 1024)
+
+	// 🚀 2. Start exactly 100 background workers
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go worker(target, ports, &wg)
 	}
+
+	// 📥 3. Send all 1,024 port numbers into the channel
+	for port := 1; port <= 1024; port++ {
+		ports <- port
+	}
+
+	// 🛑 4. Close the channel so workers know the job is done
+	close(ports)
+
+	// ✋ 5. Wait until all 100 workers finish their remaining tasks
+	wg.Wait()
+	fmt.Println("Scan complete! 👍")
 }
