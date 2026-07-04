@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -29,7 +30,12 @@ func worker(target string, ports chan int, wg *sync.WaitGroup) {
 }
 
 func main() {
-	target := "scanme.nmap.org"
+
+	if len(os.Args) != 2 {
+		fmt.Println("Usage: go run main.go <target>")
+		os.Exit(1)
+	}
+	target := os.Args[1]
 	var wg sync.WaitGroup
 
 	// 📦 1. Create the shared conveyor belt channel
