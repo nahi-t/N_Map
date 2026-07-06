@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-
 func worker(target string, ports chan int, wg *sync.WaitGroup) {
 	for port := range ports {
 		p := strconv.Itoa(port)
@@ -17,13 +16,13 @@ func worker(target string, ports chan int, wg *sync.WaitGroup) {
 
 		conn, err := net.DialTimeout("tcp", address, 2*time.Second)
 		if err != nil {
-			
+
 			continue
 		}
 		conn.Close()
 		fmt.Printf("Port %s is OPEN! \n", p)
 	}
-	
+
 	wg.Done()
 }
 
@@ -42,10 +41,8 @@ func main() {
 	}
 	var wg sync.WaitGroup
 
-	
 	ports := make(chan int, portInput)
 
-	
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go worker(target, ports, &wg)
@@ -54,7 +51,7 @@ func main() {
 	for port := 1; port <= portInput; port++ {
 		ports <- port
 	}
-     close(ports)
+	close(ports)
 	wg.Wait()
 	fmt.Println("Scan complete! ")
 }
